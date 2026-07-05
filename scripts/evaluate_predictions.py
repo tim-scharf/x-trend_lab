@@ -38,10 +38,29 @@ def load_counts_from_db(query: str, start_ts: datetime, end_ts: datetime) -> pd.
 
 
 def compute_growth_score(t0_value: float, future_value: float) -> float:
-    if t0_value <= 0:
-        return 0.0
-    growth = future_value / t0_value
-    return math.log(max(growth, 0.5))
+    """
+    Score delayed query fitness with a smoothed log-ratio.
+
+    The smoothing keeps zero-baseline rows meaningful:
+    - 0 -> 0 stays neutral
+    - 0 -> future gets positive signal
+    - t0 -> 0 gets negative signal
+
+    A volume confidence term dampens tiny one-off counts, and the final clamp
+    prevents extreme ratios from dominating the batch average.
+    """
+    t0 = max(float(t0_value or 0), 0.0)
+    future = max(float(future_value or 0), 0.0)
+
+    smoothing = 5.0
+    volume_scale = 50.0
+    max_abs_score = 2.5
+
+    raw_score = math.log((future + smoothing) / (t0 + smoothing))
+    volume_confidence = 1.0 - math.exp(-(t0 + future) / volume_scale)
+    score = raw_score * volume_confidence
+
+    return max(-max_abs_score, min(max_abs_score, score))
 
 
 def evaluate_snapshot(path: Path) -> dict:
