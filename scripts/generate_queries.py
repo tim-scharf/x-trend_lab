@@ -148,8 +148,9 @@ Interpretation:
 - realized_score is delayed fitness.
 - burst_trap means t0_3h was positive but future_3h collapsed to 0.
 - future_nonzero means the query had some delayed continuation.
-- Use this evidence to preserve working query DNA and avoid repeated failure forms.
-- Do not simply copy all winners. Mutate the useful structure.
+- Use this evidence as advisory signal, not as a template to preserve.
+- Retire stale query families aggressively when they keep producing zero or weak delayed fitness.
+- Do not simply copy winners. Extract the lesson, then try materially different event surfaces.
 
 Selected historical records:
 {history_df.to_string(index=False)}
@@ -180,9 +181,11 @@ Interpretation rules:
 - Queries with near-zero volume are too narrow.
 - Good queries should have enough volume to measure, but not be so broad that they are always noisy.
 - Prefer X search syntax that works with the counts endpoint.
-- Use quoted phrases and OR groups.
-- Prefer specific entity-event combinations over generic evergreen topics.
-- During exploration, it is okay to try narrower or more experimental phrasing.
+- Use quoted phrases and OR groups when they improve precision, but do not force every query into the same three-parenthesis pattern.
+- Prefer specific entity-event combinations over generic evergreen topics, but only when the entity/event is plausibly active now.
+- During exploration, take real chances: introduce new domains, new event mechanisms, and less obvious phrasing.
+- A risky explore query that teaches something is better than another safe mutation of a stale family.
+- Avoid overusing generic recency tails like today/now/overnight unless they materially improve the search.
 - Avoid pulling individual tweets.
 - Avoid malformed search strings. Do not over-escape quotes.
 - Avoid private, credential-related, unsafe, adult, or spammy terms.
@@ -197,10 +200,12 @@ Scoring hints:
 
 Historical evidence hints:
 - Delayed realized fitness matters more than current momentum.
-- Preserve query structures that repeatedly produced future_nonzero or positive realized_score.
-- Avoid repeating burst traps unless you intentionally mutate the event/time coupling.
-- Prefer entity + event verb + time/status qualifier when the evidence supports it.
-- If historical evidence is clumpy, keep the useful structure but explore adjacent entities/domains.
+- Historical evidence is not a mandate to stay in the same domains.
+- Preserve a query family only when the current table or delayed evidence still justifies it.
+- Avoid repeating burst traps or no-signal forms unless the new query changes the underlying bet.
+- Prefer entity + event verb + status qualifier only when that structure fits the idea naturally.
+- If historical evidence is clumpy, deliberately break out of the clump instead of making near-neighbor variants.
+- Retire or sharply reduce families that appear repeatedly in prior batches without strong delayed fitness.
 
 Domain labeling:
 - For each query, choose a concise domain label.
@@ -213,6 +218,8 @@ Exploration rule:
 Generate exactly {NUM_QUERIES} queries:
 - Exactly {NUM_EXPLOIT} queries must be mode "exploit": refine or mutate existing promising clusters.
 - Exactly {NUM_EXPLORE} queries must be mode "explore": test adjacent or new domains.
+- At least half of explore queries should be non-obvious bets that are not direct mutations of the current top rows.
+- Include some exploratory queries that are intentionally sparse but plausible early detectors.
 
 Prefer a mix of:
 - event queries
@@ -220,6 +227,8 @@ Prefer a mix of:
 - more specific mutations of currently strong clusters
 - at least a few historically informed mutations
 - at least a few exploratory candidates not directly copied from evidence
+- at least a few fresh domains or event surfaces absent from the current top rows
+- varied query shapes, including some simpler two-clause queries when appropriate
 
 Return only data matching the JSON schema. No markdown. No code fences.
 """
