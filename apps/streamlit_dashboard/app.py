@@ -178,17 +178,29 @@ def render_overview(counts: pd.DataFrame, history: pd.DataFrame, snapshots: pd.D
     left, right = st.columns([1.2, 1])
 
     with left:
-        st.subheader("Collection Volume")
+        st.subheader("Hourly Collection Pull Volume")
         if counts.empty:
             st.info("No count rows found yet.")
         else:
+            hourly_source = counts.dropna(subset=["pulled_at"]).copy()
+            hourly_source["pulled_hour"] = hourly_source["pulled_at"].dt.floor("h")
             hourly = (
-                counts.groupby("bucket_end", as_index=False)["tweet_count"]
-                .sum()
-                .sort_values("bucket_end")
-                .set_index("bucket_end")
+                hourly_source.groupby("pulled_hour", as_index=False)
+                .agg(
+                    total_tweet_count=("tweet_count", "sum"),
+                    records=("query", "count"),
+                )
+                .sort_values("pulled_hour")
             )
-            st.line_chart(hourly, y="tweet_count", height=260)
+            st.scatter_chart(
+                hourly,
+                x="pulled_hour",
+                y="total_tweet_count",
+                size="records",
+                height=260,
+                use_container_width=True,
+            )
+            st.caption("Each point is one pulled_at hour, with tweet_count summed across count records.")
 
     with right:
         st.subheader("Artifacts")
