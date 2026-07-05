@@ -43,7 +43,7 @@ def json_safe(obj):
 
 
 def load_strategy_memory():
-    path = MEMORY_DIR / "strategy_memory_latest.json"
+    path = MEMORY_DIR / "reasoning_memory_latest.json"
     if not path.exists():
         return None
     return load_json(path)

@@ -176,8 +176,8 @@ def main():
 
     latest_generated = latest_file(GENERATED_DIR, "generated_queries_*.json")
     latest_reasoning = latest_file(REASONING_DIR, "reasoning_*.json")
-    latest_memory_archive = latest_file(MEMORY_DIR / "archive", "strategy_memory_*.json")
-    latest_memory_canonical = MEMORY_DIR / "strategy_memory_latest.json"
+    latest_memory_archive = latest_file(MEMORY_DIR / "archive", "reasoning_memory_*.json")
+    latest_memory_canonical = MEMORY_DIR / "reasoning_memory_latest.json"
     cron_line = find_run_loop_cron_line()
 
     print("=== X Trend Lab Status ===")

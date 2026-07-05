@@ -10,6 +10,9 @@ sys.path.append(str(ROOT))
 
 from config import BOOTSTRAP_MODE, EVAL_LAG_HOURS, GENERATED_DIR, RUN_INTERVAL_MINUTES, SEED_QUERIES
 
+REASONING_MEMORY_MAX_AGE_HOURS = 12
+REASONING_MEMORY_LATEST = ROOT / "data" / "memory" / "reasoning_memory_latest.json"
+
 
 def parse_iso(ts: str) -> datetime:
     return datetime.fromisoformat(ts.replace("Z", "+00:00"))
@@ -29,6 +32,41 @@ def run(cmd: list[str]) -> None:
     result = subprocess.run(cmd, cwd=ROOT)
     if result.returncode != 0:
         sys.exit(result.returncode)
+
+
+def latest_reasoning_memory_updated_at() -> datetime | None:
+    if not REASONING_MEMORY_LATEST.exists():
+        return None
+
+    try:
+        payload = json.loads(REASONING_MEMORY_LATEST.read_text())
+        updated_at = payload.get("updated_at")
+        if updated_at:
+            return parse_iso(updated_at)
+    except Exception:
+        pass
+
+    try:
+        return datetime.fromtimestamp(REASONING_MEMORY_LATEST.stat().st_mtime, tz=timezone.utc)
+    except Exception:
+        return None
+
+
+def refresh_reasoning_memory_if_stale() -> None:
+    updated_at = latest_reasoning_memory_updated_at()
+    now = datetime.now(timezone.utc)
+
+    if updated_at is not None and now - updated_at < timedelta(hours=REASONING_MEMORY_MAX_AGE_HOURS):
+        print(f"\nReasoning memory is fresh: {updated_at.isoformat()}")
+        return
+
+    if updated_at is None:
+        print("\nNo reasoning memory found. Refreshing reasoning memory.")
+    else:
+        age_hours = (now - updated_at).total_seconds() / 3600
+        print(f"\nReasoning memory is stale ({age_hours:.1f}h old). Refreshing reasoning memory.")
+
+    run([sys.executable, "scripts/update_reasoning_memory.py"])
 
 
 def mature_snapshot_count() -> int:
@@ -78,6 +116,7 @@ def main() -> None:
 
     run([sys.executable, "scripts/evaluate_predictions.py"])
     run([sys.executable, "scripts/build_query_history.py"])
+    refresh_reasoning_memory_if_stale()
 
     ready_count = mature_snapshot_count()
     print(f"\nMature snapshot count: {ready_count}")
