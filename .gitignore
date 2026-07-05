@@ -1,0 +1,20 @@
+.env
+__pycache__/
+*.pyc
+.DS_Store
+.idea/
+
+# runtime data
+data/context_requests/*.json
+data/evidence/*.csv
+data/evidence/*.json
+data/generated/*.json
+data/junk/
+data/memory/*.json
+data/memory/archive/*.json
+data/reasoning/*.json
+data/runtime/*.db
+data/runtime/*.csv
+data/snapshots/*.json
+logs/*.log
+logs/reasoning/*.md
