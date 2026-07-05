@@ -39,6 +39,9 @@ REASONING_DIR.mkdir(parents=True, exist_ok=True)
 RUNTIME_DIR = ROOT / "data" / "runtime"
 RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
+MEMORY_DIR = ROOT / "data" / "memory"
+REASONING_MEMORY_LATEST = MEMORY_DIR / "reasoning_memory_latest.json"
+
 
 def load_score_summary() -> pd.DataFrame:
     """
@@ -157,7 +160,60 @@ Selected historical records:
 """
 
 
-def build_prompt(score_df: pd.DataFrame, history_block: str = "") -> str:
+def load_reasoning_memory() -> dict:
+    if not REASONING_MEMORY_LATEST.exists():
+        return {}
+
+    try:
+        return json.loads(REASONING_MEMORY_LATEST.read_text())
+    except Exception:
+        return {}
+
+
+def compact_items(items: list[dict], fields: list[str]) -> str:
+    lines = []
+    for item in items:
+        parts = [str(item.get(field, "")).strip() for field in fields if item.get(field)]
+        if parts:
+            lines.append("- " + " | ".join(parts))
+    return "\n".join(lines)
+
+
+def build_reasoning_memory_block(memory: dict) -> str:
+    if not memory:
+        return """
+No reasoning memory available.
+"""
+
+    source_window = memory.get("source_window", {})
+
+    return f"""
+Reasoning memory distilled from prior generated-query reasons and delayed outcomes:
+
+Updated at: {memory.get("updated_at", "unknown")}
+Source window: {json.dumps(source_window, default=str)}
+
+Summary:
+{memory.get("prompt_summary", "")}
+
+Exploit guidance:
+{compact_items(memory.get("exploit_guidance", []), ["mechanism", "rule", "confidence"])}
+
+Explore guidance:
+{compact_items(memory.get("explore_guidance", []), ["mechanism", "query_shape", "reason", "confidence"])}
+
+Avoid guidance:
+{compact_items(memory.get("avoid_guidance", []), ["failure_mode", "reason"])}
+
+Decay rules:
+{chr(10).join("- " + str(rule) for rule in memory.get("decay_rules", []))}
+
+Query-shape rules:
+{chr(10).join("- " + str(rule) for rule in memory.get("query_shape_rules", []))}
+"""
+
+
+def build_prompt(score_df: pd.DataFrame, history_block: str = "", reasoning_memory_block: str = "") -> str:
     prompt_df = score_df[
         ["query", "hourly_buckets", "total_7d", "recent_3h", "prev_3h", "velocity", "score"]
     ].head(80)
@@ -175,6 +231,9 @@ Current query performance:
 
 Historical delayed-fitness evidence:
 {history_block}
+
+Reasoning memory:
+{reasoning_memory_block}
 
 Interpretation rules:
 - Queries with huge volume may be too broad and noisy.
@@ -206,6 +265,12 @@ Historical evidence hints:
 - Prefer entity + event verb + status qualifier only when that structure fits the idea naturally.
 - If historical evidence is clumpy, deliberately break out of the clump instead of making near-neighbor variants.
 - Retire or sharply reduce families that appear repeatedly in prior batches without strong delayed fitness.
+
+Reasoning memory hints:
+- Treat reasoning memory as general policy learned from prior model reasons and delayed scoring.
+- Prefer reusable mechanisms over copying named domains from memory.
+- Follow decay and avoid guidance unless current counts or historical evidence clearly justify a fresh test.
+- When memory conflicts with current momentum, make the query materially different and explain why in the reason.
 
 Domain labeling:
 - For each query, choose a concise domain label.
@@ -330,6 +395,7 @@ def save_reasoning_file(
     generated_filename: str,
     evidence_df: pd.DataFrame,
     evidence_plan_payload: dict,
+    reasoning_memory_payload: dict,
 ) -> Path:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     reason_payload = {
@@ -344,6 +410,12 @@ def save_reasoning_file(
         "history_evidence_plan": evidence_plan_payload,
         "history_evidence_rows": evidence_df.to_dict(orient="records"),
         "history_evidence_row_count": int(len(evidence_df)),
+        "reasoning_memory": {
+            "enabled": bool(reasoning_memory_payload),
+            "file": str(REASONING_MEMORY_LATEST),
+            "updated_at": reasoning_memory_payload.get("updated_at"),
+            "source_window": reasoning_memory_payload.get("source_window"),
+        },
         "prompt": prompt,
     }
 
@@ -353,7 +425,12 @@ def save_reasoning_file(
     return path
 
 
-def save_query_generation(payload: dict, evidence_plan_payload: dict, evidence_df: pd.DataFrame) -> Path:
+def save_query_generation(
+    payload: dict,
+    evidence_plan_payload: dict,
+    evidence_df: pd.DataFrame,
+    reasoning_memory_payload: dict,
+) -> Path:
     created_at = datetime.now(timezone.utc).isoformat()
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
@@ -365,6 +442,8 @@ def save_query_generation(payload: dict, evidence_plan_payload: dict, evidence_d
         "num_explore": NUM_EXPLORE,
         "history_evidence_enabled": True,
         "history_evidence_rows": int(len(evidence_df)),
+        "reasoning_memory_enabled": bool(reasoning_memory_payload),
+        "reasoning_memory_updated_at": reasoning_memory_payload.get("updated_at"),
     }
 
     payload["history_evidence"] = {
@@ -376,6 +455,13 @@ def save_query_generation(payload: dict, evidence_plan_payload: dict, evidence_d
         ),
         "plan_file": str(EVIDENCE_PLAN_LATEST),
         "selected_file": str(EVIDENCE_SELECTED_LATEST),
+    }
+
+    payload["reasoning_memory"] = {
+        "enabled": bool(reasoning_memory_payload),
+        "file": str(REASONING_MEMORY_LATEST),
+        "updated_at": reasoning_memory_payload.get("updated_at"),
+        "source_window": reasoning_memory_payload.get("source_window"),
     }
 
     path = GENERATED_DIR / f"generated_queries_{timestamp}.json"
@@ -395,11 +481,22 @@ def main() -> None:
         max_records=max_evidence_records
     )
     history_block = build_history_evidence_block(evidence_df, evidence_plan_payload)
+    reasoning_memory_payload = load_reasoning_memory()
+    reasoning_memory_block = build_reasoning_memory_block(reasoning_memory_payload)
 
-    prompt = build_prompt(score_df, history_block=history_block)
+    prompt = build_prompt(
+        score_df,
+        history_block=history_block,
+        reasoning_memory_block=reasoning_memory_block,
+    )
     payload = generate_queries(prompt)
 
-    generated_path = save_query_generation(payload, evidence_plan_payload, evidence_df)
+    generated_path = save_query_generation(
+        payload,
+        evidence_plan_payload,
+        evidence_df,
+        reasoning_memory_payload,
+    )
     reasoning_path = save_reasoning_file(
         payload=payload,
         prompt=prompt,
@@ -407,11 +504,15 @@ def main() -> None:
         generated_filename=generated_path.name,
         evidence_df=evidence_df,
         evidence_plan_payload=evidence_plan_payload,
+        reasoning_memory_payload=reasoning_memory_payload,
     )
 
     print(f"History evidence rows selected: {len(evidence_df)}")
     print(f"History evidence latest CSV: {EVIDENCE_SELECTED_LATEST}")
     print(f"History evidence latest plan: {EVIDENCE_PLAN_LATEST}")
+    print(f"Reasoning memory enabled: {bool(reasoning_memory_payload)}")
+    if reasoning_memory_payload:
+        print(f"Reasoning memory updated at: {reasoning_memory_payload.get('updated_at')}")
     print(f"Saved generated queries to: {generated_path}")
     print(f"Saved reasoning log to: {reasoning_path}")
     print(json.dumps(payload, indent=2, default=str))

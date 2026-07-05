@@ -247,7 +247,7 @@ def build_reasoned_query_examples(
 
 def build_strategy_note_examples(reasoning_logs: list[dict[str, Any]], max_rows: int = 25) -> list[str]:
     notes = []
-    for log in reasoning_logs:
+    for log in reversed(reasoning_logs):
         note = (log.get("strategy_notes") or "").strip()
         if note:
             notes.append(note)
