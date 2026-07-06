@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,6 +16,11 @@ GENERATED_DIR = DATA_DIR / "generated"
 SNAPSHOTS_DIR = DATA_DIR / "snapshots"
 EVIDENCE_DIR = DATA_DIR / "evidence"
 HISTORY_CSV = RUNTIME_DIR / "query_level_history.csv"
+
+sys.path.append(str(ROOT / "scripts"))
+sys.path.append(str(ROOT))
+from config import X_COUNTS_COST_PER_REQUEST  # noqa: E402
+from check_x_usage import get_x_usage  # noqa: E402
 
 
 st.set_page_config(
@@ -150,6 +156,23 @@ def load_open_queries() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+@st.cache_data(ttl=300)
+def load_x_usage() -> dict:
+    try:
+        usage = get_x_usage(days=30)
+    except Exception as exc:
+        return {"error": str(exc)}
+
+    if usage.get("estimated_spend_usd") is None and usage.get("project_usage") is not None:
+        usage["estimated_spend_usd"] = round(
+            int(usage["project_usage"]) * X_COUNTS_COST_PER_REQUEST,
+            4,
+        )
+        usage["estimated_cost_per_usage_unit_usd"] = X_COUNTS_COST_PER_REQUEST
+
+    return usage
+
+
 def render_header() -> None:
     now_utc = datetime.now(timezone.utc)
     now_local = datetime.now().astimezone()
@@ -164,6 +187,7 @@ def render_header() -> None:
 
 def render_basics() -> None:
     status = snapshot_status_counts()
+    x_usage = load_x_usage()
 
     cols = st.columns(4)
     cols[0].metric("Total Batches", f"{status['total_batches']:,}")
@@ -180,6 +204,31 @@ def render_basics() -> None:
     artifact_cols[2].write(latest_file(EVIDENCE_DIR, "history_evidence_plan_*.json"))
     artifact_cols[3].caption("Query History")
     artifact_cols[3].write(HISTORY_CSV.name if HISTORY_CSV.exists() else "n/a")
+
+    usage_cols = st.columns(4)
+    usage_cols[0].caption("X Est. Spend")
+    usage_cols[0].write(
+        f"${x_usage['estimated_spend_usd']:,.2f}"
+        if x_usage.get("estimated_spend_usd") is not None
+        else "n/a"
+    )
+    usage_cols[1].caption("X Usage Units")
+    usage_cols[1].write(
+        f"{int(x_usage['project_usage']):,}"
+        if x_usage.get("project_usage") is not None
+        else "n/a"
+    )
+    usage_cols[2].caption("X Usage Cap")
+    usage_cols[2].write(
+        f"{int(x_usage['project_cap']):,}"
+        if x_usage.get("project_cap") is not None
+        else "n/a"
+    )
+    usage_cols[3].caption("Cap Reset Day")
+    usage_cols[3].write(x_usage.get("cap_reset_day", "n/a"))
+
+    if x_usage.get("error"):
+        st.caption(f"X API usage unavailable: {x_usage['error']}")
 
 
 def add_query_time_offsets(df: pd.DataFrame, spread_minutes: int) -> pd.DataFrame:
