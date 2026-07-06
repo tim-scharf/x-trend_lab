@@ -25,6 +25,7 @@ EVIDENCE_PLAN_LATEST = EVIDENCE_DIR / "history_evidence_plan_latest.json"
 EVIDENCE_SELECTED_LATEST = EVIDENCE_DIR / "history_evidence_selected_latest.csv"
 
 DEFAULT_COLUMNS = [
+    "_evidence_profile",
     "batch_id",
     "saved_at",
     "evaluated_at",
@@ -46,6 +47,49 @@ DEFAULT_COLUMNS = [
     "score_zero",
     "burst_trap",
     "no_signal",
+]
+
+EVIDENCE_PROFILES = [
+    {
+        "name": "winners",
+        "goal": (
+            "Select historical query forms with strong delayed realized fitness. "
+            "Prefer rows with future_nonzero true, high future_3h, and high realized_score."
+        ),
+        "records": 25,
+    },
+    {
+        "name": "burst_traps",
+        "goal": (
+            "Select query forms that looked promising at t0 but collapsed later. "
+            "Prefer burst_trap true, high t0_3h, low future_3h, and negative realized_score."
+        ),
+        "records": 20,
+    },
+    {
+        "name": "sleepers",
+        "goal": (
+            "Select low-initial-volume query forms that later developed signal. "
+            "Prefer low t0_3h, future_nonzero true, meaningful future_3h, and positive realized_score."
+        ),
+        "records": 20,
+    },
+    {
+        "name": "failures",
+        "goal": (
+            "Select repeated no-signal or negative-score query forms. "
+            "Prefer no_signal true or score_negative true across varied domains and modes."
+        ),
+        "records": 20,
+    },
+    {
+        "name": "diversity",
+        "goal": (
+            "Select varied domains, modes, and query shapes not covered by the other profiles. "
+            "Favor examples that improve coverage over additional near-duplicate winners."
+        ),
+        "records": 15,
+    },
 ]
 
 
@@ -272,7 +316,11 @@ def apply_history_selection_plan(df: pd.DataFrame, plan: dict, max_records: int 
     return out.head(limit).reset_index(drop=True)
 
 
-def ask_openai_for_history_selection(schema_summary: dict, max_records: int = 100) -> dict:
+def ask_openai_for_history_selection(
+    schema_summary: dict,
+    max_records: int = 100,
+    profile: dict | None = None,
+) -> dict:
     """
     Ask OpenAI which historical records would help the next generator.
     """
@@ -280,11 +328,26 @@ def ask_openai_for_history_selection(schema_summary: dict, max_records: int = 10
 
     client = OpenAI()
 
+    if profile:
+        profile_instruction = f"""
+Focused evidence profile:
+- profile_name: {profile["name"]}
+- profile_goal: {profile["goal"]}
+
+Select records for this profile only. Do not try to satisfy every evidence type in this one plan.
+"""
+    else:
+        profile_instruction = """
+Select a generally useful historical evidence set.
+"""
+
     prompt = f"""
 You are choosing historical evidence for an adaptive X/Twitter query-generation loop.
 
 The generator already sees current short-term momentum from the counts DB.
 Your job is to select records from query_level_history.csv that teach delayed realized fitness.
+
+{profile_instruction}
 
 Useful evidence includes:
 - query forms that survived into future_3h
@@ -317,7 +380,61 @@ Available CSV schema/profile:
 
     plan = json.loads(response.output_text)
     plan["max_records"] = min(int(plan.get("max_records", max_records)), max_records, 100)
+    if profile:
+        plan["profile"] = profile["name"]
     return plan
+
+
+def allocate_profile_records(max_records: int) -> list[dict]:
+    """
+    Scale profile budgets to the requested overall evidence count.
+    """
+    max_records = max(1, min(int(max_records), 100))
+    total_default = sum(int(profile["records"]) for profile in EVIDENCE_PROFILES)
+
+    allocations = []
+    used = 0
+    for idx, profile in enumerate(EVIDENCE_PROFILES):
+        if idx == len(EVIDENCE_PROFILES) - 1:
+            records = max_records - used
+        else:
+            records = round(max_records * int(profile["records"]) / total_default)
+            records = max(1, int(records))
+            records = min(records, max_records - used)
+
+        if records <= 0:
+            continue
+
+        profile_copy = dict(profile)
+        profile_copy["records"] = records
+        allocations.append(profile_copy)
+        used += records
+
+        if used >= max_records:
+            break
+
+    return allocations
+
+
+def merge_profile_evidence(frames: list[pd.DataFrame], max_records: int = 100) -> pd.DataFrame:
+    """
+    Merge profile-selected evidence while removing exact duplicate rows.
+
+    Keep same-query repeats from different batches/times because repeated
+    outcomes are useful evidence about query-shape consistency.
+    """
+    if not frames:
+        return pd.DataFrame()
+
+    merged = pd.concat([frame for frame in frames if not frame.empty], ignore_index=True)
+    if merged.empty:
+        return merged
+
+    exact_keys = [col for col in ["batch_id", "query_index", "query"] if col in merged.columns]
+    if exact_keys:
+        merged = merged.drop_duplicates(subset=exact_keys, keep="first")
+
+    return merged.head(min(int(max_records), 100)).reset_index(drop=True)
 
 
 def select_history_evidence(max_records: int = 100) -> tuple[pd.DataFrame, dict]:
@@ -337,12 +454,53 @@ def select_history_evidence(max_records: int = 100) -> tuple[pd.DataFrame, dict]
         }
 
     try:
-        plan = ask_openai_for_history_selection(schema_summary, max_records=max_records)
         df = pd.read_csv(HISTORY_CSV)
-        selected = apply_history_selection_plan(df, plan, max_records=max_records)
+        profile_frames = []
+        profile_plans = []
+
+        for profile in allocate_profile_records(max_records):
+            try:
+                plan = ask_openai_for_history_selection(
+                    schema_summary,
+                    max_records=int(profile["records"]),
+                    profile=profile,
+                )
+                selected_for_profile = apply_history_selection_plan(
+                    df,
+                    plan,
+                    max_records=int(profile["records"]),
+                )
+                if not selected_for_profile.empty:
+                    selected_for_profile.insert(0, "_evidence_profile", profile["name"])
+                    profile_frames.append(selected_for_profile)
+
+                profile_plans.append(
+                    {
+                        "profile": profile["name"],
+                        "goal": profile["goal"],
+                        "requested_rows": int(profile["records"]),
+                        "selected_rows": int(len(selected_for_profile)),
+                        "plan": plan,
+                    }
+                )
+            except Exception as profile_error:
+                profile_plans.append(
+                    {
+                        "profile": profile["name"],
+                        "goal": profile["goal"],
+                        "requested_rows": int(profile["records"]),
+                        "selected_rows": 0,
+                        "error": str(profile_error),
+                    }
+                )
+
+        selected = merge_profile_evidence(profile_frames, max_records=max_records)
+
+        if selected.empty:
+            raise RuntimeError("All history evidence profile selections returned zero rows.")
     except Exception as e:
         return pd.DataFrame(), {
-            "strategy": "History selection failed; continuing without historical evidence.",
+            "strategy": "Multi-profile history selection failed; continuing without historical evidence.",
             "error": str(e),
             "max_records": max_records,
         }
@@ -354,7 +512,15 @@ def select_history_evidence(max_records: int = 100) -> tuple[pd.DataFrame, dict]
         "model_used": MODEL,
         "history_csv": str(HISTORY_CSV),
         "schema_shape": schema_summary.get("shape"),
-        "plan": plan,
+        "plan": {
+            "strategy": (
+                "Multi-profile evidence selection: winners, burst traps, sleepers, "
+                "failures, and diversity examples are selected separately, then merged "
+                "and deduplicated."
+            ),
+            "profiles": profile_plans,
+            "max_records": max_records,
+        },
         "selected_rows": int(len(selected)),
     }
 

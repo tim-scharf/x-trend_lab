@@ -151,6 +151,7 @@ Interpretation:
 - realized_score is delayed fitness.
 - burst_trap means t0_3h was positive but future_3h collapsed to 0.
 - future_nonzero means the query had some delayed continuation.
+- _evidence_profile explains why the row was selected: winners, burst_traps, sleepers, failures, or diversity.
 - Use this evidence as advisory signal, not as a template to preserve.
 - Retire stale query families aggressively when they keep producing zero or weak delayed fitness.
 - Do not simply copy winners. Extract the lesson, then try materially different event surfaces.
