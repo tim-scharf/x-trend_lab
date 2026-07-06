@@ -1,0 +1,78 @@
+{
+  "generated_at": "2026-07-06T16:42:40.019740+00:00",
+  "artifact_dir": "/Users/timscharf/x-trend-lab/artifacts/x_api",
+  "sources": [
+    {
+      "id": "docs_index",
+      "url": "https://docs.x.com/llms.txt",
+      "filename": "sources/docs_index.llms.txt",
+      "purpose": "Top-level X Developer Platform LLM index.",
+      "ok": true,
+      "bytes": 3127
+    },
+    {
+      "id": "pricing",
+      "url": "https://docs.x.com/x-api/getting-started/pricing.md",
+      "filename": "sources/pricing.md",
+      "purpose": "Official X API pricing page.",
+      "ok": true,
+      "bytes": 12796
+    },
+    {
+      "id": "usage_billing",
+      "url": "https://docs.x.com/x-api/fundamentals/post-cap.md",
+      "filename": "sources/usage_billing.md",
+      "purpose": "Usage tracking, post caps, and billing semantics.",
+      "ok": true,
+      "bytes": 5495
+    },
+    {
+      "id": "usage_endpoint",
+      "url": "https://docs.x.com/x-api/usage/get-usage.md",
+      "filename": "sources/usage_endpoint.md",
+      "purpose": "GET /2/usage/tweets endpoint fields.",
+      "ok": true,
+      "bytes": 19511
+    },
+    {
+      "id": "rate_limits",
+      "url": "https://docs.x.com/x-api/fundamentals/rate-limits.md",
+      "filename": "sources/rate_limits.md",
+      "purpose": "Current endpoint rate limits.",
+      "ok": true,
+      "bytes": 20390
+    },
+    {
+      "id": "recent_search",
+      "url": "https://docs.x.com/x-api/posts/search-recent-posts.md",
+      "filename": "sources/recent_search.md",
+      "purpose": "GET /2/tweets/search/recent reference.",
+      "ok": true,
+      "bytes": 71106
+    },
+    {
+      "id": "recent_counts",
+      "url": "https://docs.x.com/x-api/posts/get-count-of-recent-posts.md",
+      "filename": "sources/recent_counts.md",
+      "purpose": "GET /2/tweets/counts/recent reference.",
+      "ok": true,
+      "bytes": 21794
+    },
+    {
+      "id": "search_operators",
+      "url": "https://docs.x.com/x-api/posts/search/integrate/operators.md",
+      "filename": "sources/search_operators.md",
+      "purpose": "Search query operators.",
+      "ok": true,
+      "bytes": 10976
+    },
+    {
+      "id": "openapi",
+      "url": "https://docs.x.com/openapi.json",
+      "filename": "sources/openapi.json",
+      "purpose": "Machine-readable OpenAPI contract.",
+      "ok": true,
+      "bytes": 797435
+    }
+  ]
+}

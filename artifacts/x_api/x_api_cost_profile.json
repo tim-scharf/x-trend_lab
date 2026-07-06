@@ -1,0 +1,478 @@
+{
+  "generated_at": "2026-07-06T16:42:42.997211+00:00",
+  "source_urls": {
+    "docs_index": "https://docs.x.com/llms.txt",
+    "pricing": "https://docs.x.com/x-api/getting-started/pricing.md",
+    "usage_billing": "https://docs.x.com/x-api/fundamentals/post-cap.md",
+    "usage_endpoint": "https://docs.x.com/x-api/usage/get-usage.md",
+    "rate_limits": "https://docs.x.com/x-api/fundamentals/rate-limits.md",
+    "recent_search": "https://docs.x.com/x-api/posts/search-recent-posts.md",
+    "recent_counts": "https://docs.x.com/x-api/posts/get-count-of-recent-posts.md",
+    "search_operators": "https://docs.x.com/x-api/posts/search/integrate/operators.md",
+    "openapi": "https://docs.x.com/openapi.json"
+  },
+  "local_fallback_costs": {
+    "recent_counts_request_usd": 0.005,
+    "note": "Configured in config.py; used when official pricing text cannot be parsed into a concrete per-endpoint unit price."
+  },
+  "official_costs_extracted": [
+    {
+      "section": "Read operations",
+      "name": "Posts: Read",
+      "unit_cost_usd": 0.005,
+      "unit": "resource",
+      "raw_cost": "$0.005 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "User: Read",
+      "unit_cost_usd": 0.01,
+      "unit": "resource",
+      "raw_cost": "$0.010 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "DM Event: Read",
+      "unit_cost_usd": 0.01,
+      "unit": "resource",
+      "raw_cost": "$0.010 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "Following/Followers: Read",
+      "unit_cost_usd": 0.01,
+      "unit": "resource",
+      "raw_cost": "$0.010 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "List: Read",
+      "unit_cost_usd": 0.005,
+      "unit": "resource",
+      "raw_cost": "$0.005 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "Space: Read",
+      "unit_cost_usd": 0.005,
+      "unit": "resource",
+      "raw_cost": "$0.005 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "Community: Read",
+      "unit_cost_usd": 0.005,
+      "unit": "resource",
+      "raw_cost": "$0.005 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "Note: Read",
+      "unit_cost_usd": 0.005,
+      "unit": "resource",
+      "raw_cost": "$0.005 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "Like: Read",
+      "unit_cost_usd": 0.001,
+      "unit": "resource",
+      "raw_cost": "$0.001 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "Mute: Read",
+      "unit_cost_usd": 0.001,
+      "unit": "resource",
+      "raw_cost": "$0.001 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "Block: Read",
+      "unit_cost_usd": 0.001,
+      "unit": "resource",
+      "raw_cost": "$0.001 per resource"
+    },
+    {
+      "section": "Read operations",
+      "name": "Profile Update: Read",
+      "unit_cost_usd": 0.005,
+      "unit": "resource",
+      "raw_cost": "$0.005 per resource"
+    },
+    {
+      "section": "Write operations",
+      "name": "Post: Create",
+      "unit_cost_usd": 0.015,
+      "unit": "request",
+      "raw_cost": "$0.015 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Post: Create (with URL)",
+      "unit_cost_usd": 0.2,
+      "unit": "request",
+      "raw_cost": "$0.200 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Post: Create (summoned)",
+      "unit_cost_usd": 0.01,
+      "unit": "request",
+      "raw_cost": "$0.010 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "DM Interaction: Create",
+      "unit_cost_usd": 0.015,
+      "unit": "request",
+      "raw_cost": "$0.015 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "User Interaction: Create",
+      "unit_cost_usd": 0.015,
+      "unit": "request",
+      "raw_cost": "$0.015 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Interaction: Delete",
+      "unit_cost_usd": 0.01,
+      "unit": "request",
+      "raw_cost": "$0.010 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Content: Manage",
+      "unit_cost_usd": 0.005,
+      "unit": "request",
+      "raw_cost": "$0.005 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "List: Create",
+      "unit_cost_usd": 0.01,
+      "unit": "request",
+      "raw_cost": "$0.010 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "List: Manage",
+      "unit_cost_usd": 0.005,
+      "unit": "request",
+      "raw_cost": "$0.005 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Bookmark",
+      "unit_cost_usd": 0.005,
+      "unit": "request",
+      "raw_cost": "$0.005 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Media Metadata",
+      "unit_cost_usd": 0.005,
+      "unit": "request",
+      "raw_cost": "$0.005 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Privacy: Update",
+      "unit_cost_usd": 0.01,
+      "unit": "request",
+      "raw_cost": "$0.010 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Mute: Delete",
+      "unit_cost_usd": 0.005,
+      "unit": "request",
+      "raw_cost": "$0.005 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Counts: Recent",
+      "unit_cost_usd": 0.005,
+      "unit": "request",
+      "raw_cost": "$0.005 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Counts: All",
+      "unit_cost_usd": 0.01,
+      "unit": "request",
+      "raw_cost": "$0.010 per request"
+    },
+    {
+      "section": "Write operations",
+      "name": "Trends",
+      "unit_cost_usd": 0.01,
+      "unit": "request",
+      "raw_cost": "$0.010 per request"
+    },
+    {
+      "section": "Webhook events",
+      "name": "post.create",
+      "unit_cost_usd": 0.005,
+      "unit": null,
+      "raw_cost": "$0.005"
+    },
+    {
+      "section": "Webhook events",
+      "name": "follow.follow",
+      "unit_cost_usd": 0.01,
+      "unit": null,
+      "raw_cost": "$0.010"
+    },
+    {
+      "section": "Webhook events",
+      "name": "follow.unfollow",
+      "unit_cost_usd": 0.01,
+      "unit": null,
+      "raw_cost": "$0.010"
+    },
+    {
+      "section": "Webhook events",
+      "name": "profile.update.*",
+      "unit_cost_usd": 0.005,
+      "unit": null,
+      "raw_cost": "$0.005"
+    },
+    {
+      "section": "Webhook events",
+      "name": "chat.received",
+      "unit_cost_usd": 0.01,
+      "unit": null,
+      "raw_cost": "$0.010"
+    },
+    {
+      "section": "Webhook events",
+      "name": "dm.received",
+      "unit_cost_usd": 0.01,
+      "unit": null,
+      "raw_cost": "$0.010"
+    },
+    {
+      "section": "Webhook events",
+      "name": "news.new",
+      "unit_cost_usd": 0.005,
+      "unit": null,
+      "raw_cost": "$0.005"
+    },
+    {
+      "section": "Webhook events",
+      "name": "spaces.start",
+      "unit_cost_usd": 0.005,
+      "unit": null,
+      "raw_cost": "$0.005"
+    },
+    {
+      "section": "Webhook events",
+      "name": "spaces.end",
+      "unit_cost_usd": 0.005,
+      "unit": null,
+      "raw_cost": "$0.005"
+    }
+  ],
+  "pricing_money_values_seen": [
+    "$0",
+    "$0.001",
+    "$0.005",
+    "$0.010",
+    "$0.015",
+    "$0.200",
+    "$1",
+    "$1,000",
+    "$100",
+    "$112.50",
+    "$15",
+    "$150",
+    "$199",
+    "$20",
+    "$200",
+    "$25",
+    "$250",
+    "$35",
+    "$37.50",
+    "$40",
+    "$499",
+    "$5",
+    "$500",
+    "$75",
+    "$87.50",
+    "$999"
+  ],
+  "pricing_relevant_lines": [
+    "# X API pay-per-usage pricing and credits",
+    "> The X API uses pay-per-usage pricing with no subscriptions. Buy credits, set spending limits, and earn up to 20% back in free xAI API credits.",
+    "<svg width=\"3\" height=\"24\" viewBox=\"0 -9 3 24\" class=\"h-6 rotate-0 overflow-visible\"><path d=\"M0 0L3 3L0 6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"></path></svg>",
+    "The X API uses **pay-per-usage** pricing. No subscriptions\u2014pay only for what you use.",
+    "<Button href=\"https://developer.x.com/#pricing\">View pricing & purchase credits</Button>",
+    "<Card title=\"Credit-based\" icon=\"coins\">",
+    "Purchase credits upfront in the Developer Console. Credits are deducted as you make API requests.",
+    "<Card title=\"Per-endpoint pricing\" icon=\"code\">",
+    "Monitor usage and costs live in the Developer Console.",
+    "Earn free [xAI API](https://docs.x.ai) credits when you purchase X API credits\u2014up to 20% back based on your spend. [Learn more](#free-xai-api-credits)",
+    "## Credit consumption details",
+    "All prices are per resource fetched (reads) or per request (writes/actions). [Purchase credits](https://console.x.com) in the Developer Console.",
+    "| **Posts: Read** | \\$0.005 per resource |",
+    "| **User: Read** | \\$0.010 per resource |",
+    "| **DM Event: Read** | \\$0.010 per resource |",
+    "| **Following/Followers: Read** | \\$0.010 per resource |",
+    "| **List: Read** | \\$0.005 per resource |",
+    "| **Space: Read** | \\$0.005 per resource |",
+    "| **Community: Read** | \\$0.005 per resource |",
+    "| **Note: Read** | \\$0.005 per resource |",
+    "| **Like: Read** | \\$0.001 per resource |",
+    "| **Mute: Read** | \\$0.001 per resource |",
+    "| **Block: Read** | \\$0.001 per resource |",
+    "| **Profile Update: Read** | \\$0.005 per resource |",
+    "Charged per request.",
+    "| **Post: Create** | \\$0.015 per request |",
+    "| **Post: Create (with URL)** | \\$0.200 per request |",
+    "| **Post: Create (summoned)** | \\$0.010 per request |",
+    "| **DM Interaction: Create** | \\$0.015 per request |",
+    "| **User Interaction: Create** | \\$0.015 per request |",
+    "| **Interaction: Delete** | \\$0.010 per request |",
+    "| **Content: Manage** | \\$0.005 per request |",
+    "| **List: Create** | \\$0.010 per request |",
+    "| **List: Manage** | \\$0.005 per request |",
+    "| **Bookmark** | \\$0.005 per request |",
+    "| **Media Metadata** | \\$0.005 per request |",
+    "| **Privacy: Update** | \\$0.010 per request |",
+    "| **Mute: Delete** | \\$0.005 per request |",
+    "| **Counts: Recent** | \\$0.005 per request |",
+    "| **Counts: All** | \\$0.010 per request |",
+    "| **Trends** | \\$0.010 per request |",
+    "Prices are subject to change. Current rates are always available in the [Developer Console](https://console.x.com) and on the [developer.x.com pricing page](https://developer.x.com/#pricing).",
+    "| `post.create` | \\$0.005 |",
+    "| `post.delete` | Not billed |",
+    "| `follow.follow` | \\$0.010 |",
+    "| `follow.unfollow` | \\$0.010 |",
+    "| `profile.update.*` | \\$0.005 |",
+    "| `chat.received` | \\$0.010 |",
+    "| `dm.received` | \\$0.010 |",
+    "| `news.new` | \\$0.005 |",
+    "| `spaces.start` | \\$0.005 |",
+    "| `spaces.end` | \\$0.005 |",
+    "Owned Reads are requests made by your own developer app for your own data (posts, bookmarks, followers, likes, lists, and more). These endpoints are priced at **\\$0.001 per resource** (1,000 resources for \\$1).",
+    "The following endpoints qualify for Owned Read pricing when `{id}` matches the authenticated user and that user is the owner of the developer app:",
+    "| `GET /2/users/{id}/tweets` | Your own posts |",
+    "| `GET /2/users/{id}/liked_tweets` | Posts you liked |",
+    "| `GET /2/users/{id}/following` | Accounts you follow |",
+    "| `GET /2/users/{id}/blocking` | Accounts you blocked |",
+    "| `GET /2/users/{id}/muting` | Accounts you muted |",
+    "All resources are deduplicated within a **24-hour UTC day window**. If you request and are charged for a resource (such as a Post), requesting the same resource again within that window will not incur an additional charge.",
+    "* Requesting the same Post multiple times in a day counts as one charge",
+    "* This applies to all billable resources (Posts, users, etc.)",
+    "## Credit balance",
+    "Your credit balance is displayed in the Developer Console. Credits are deducted in real-time as you make API requests.",
+    "Monitor your credit balance regularly to avoid service interruptions. Add credits before your balance reaches zero to ensure uninterrupted API access.",
+    "***Note:** It is possible for an account credit balance to go slightly negative. In this case, API requests will be blocked until you add credits to cover the negative balance.*",
+    "Enable auto-recharge to automatically top up your credit balance and avoid service interruptions. Configure this in the Developer Console:",
+    "| **Recharge amount** | The amount to add when auto-recharge triggers (e.g., \\$25) |",
+    "| **Trigger threshold** | Auto-recharge activates when your balance falls below this amount (e.g., \\$5) |",
+    "* **One top-up per 5-minute window.** Automatic charges can trigger at most once every 5 minutes, so a sudden burst of usage cannot stack multiple recharges back-to-back.",
+    "* **Paused at zero or negative balance.** Auto-recharge does not run while your account balance is zero or negative. Add credits manually to resume automatic top-ups.",
+    "If your usage is bursty enough to drain a full recharge in under 5 minutes, you can still see \"out of credits\" errors even with auto-recharge on. Raise your **Recharge amount** so a single top-up comfortably outlasts a 5-minute window of your peak consumption.",
+    "Set a maximum amount you can spend per billing cycle to control costs. When the limit is reached, API requests will be blocked until the next billing cycle.",
+    "## Free xAI API credits",
+    "When you purchase X API credits, you can earn free [xAI API](https://docs.x.ai) credits based on your cumulative spend during a billing cycle.",
+    "To receive free xAI credits, you must link your xAI team to your X developer account. You can do this by visiting your account settings in the [developer console](https://console.x.com).",
+    "Your cumulative spend is tracked throughout each billing cycle. As you cross spending thresholds, you unlock higher reward rates. When a new billing cycle starts, your cumulative spend resets to \\$0.",
+    "| \\$0 \u2013 \\$199 | 0% |",
+    "| \\$200 \u2013 \\$499 | 10% |",
+    "| \\$500 \u2013 \\$999 | 15% |",
+    "| \\$1,000+ | 20% |",
+    "The rate applies to your **entire cumulative balance**, but you only receive the delta\u2014what's newly owed minus what was already credited.",
+    "| Purchase | Rate | Total owed | Already credited | You receive |",
+    "| \\$100 | 0% | \\$0 | \\$0 | **\\$0** |",
+    "| \\$100 | 10% | \\$20 | \\$0 | **\\$20** |",
+    "| \\$150 | 10% | \\$35 | \\$20 | **\\$15** |",
+    "| \\$150 | 15% | \\$75 | \\$35 | **\\$40** |",
+    "| \\$250 | 15% | \\$112.50 | \\$75 | **\\$37.50** |",
+    "| \\$250 | 20% | \\$200 | \\$112.50 | **\\$87.50** |",
+    "| **\\$1,000** | | | | **\\$200** |",
+    "This is the same amount you'd receive from a single \\$1,000 purchase\u2014the order and size of purchases doesn't affect your total rewards.",
+    "View your xAI credit balance and manage your account at [console.x.ai](https://console.x.ai). For more details on xAI API billing, see the [xAI billing documentation](https://docs.x.ai/docs/key-information/billing).",
+    "## Monitoring usage",
+    "Track your API usage programmatically with the [Usage endpoint](/x-api/usage/introduction):",
+    "curl \"https://api.x.com/2/usage/tweets\" \\",
+    "-H \"Authorization: Bearer $BEARER_TOKEN\"",
+    "This returns daily Post consumption counts, helping you:",
+    "* Generate usage reports",
+    "Purchase credits and view current pricing.",
+    "<Card title=\"Usage API\" icon=\"chart-line\" href=\"/x-api/usage/introduction\">",
+    "Monitor usage programmatically."
+  ],
+  "billing_relevant_lines": [
+    "# Usage and Billing",
+    "> X API v2 uses pay-per-usage pricing. You're charged based on actual API consumption, tracked at the app level. Pay-per-usage plans are subject to a monthly.",
+    "X API v2 uses **pay-per-usage** pricing. You're charged based on actual API consumption, tracked at the app level.",
+    "## How billing works",
+    "| **Per-request pricing** | Different endpoints have different costs |",
+    "| **Real-time tracking** | Monitor usage in the Developer Console |",
+    "Pay-per-usage plans are subject to a monthly cap of 2 million Post reads. If you need higher volume, consider an [Enterprise plan](/forms/enterprise-api-interest).",
+    "Posts retrieved from these endpoints count toward usage:",
+    "| **Post lookup** | [GET /2/tweets](/x-api/posts/lookup/introduction) |",
+    "| **Search** | [Recent search](/x-api/posts/search/introduction), [Full-archive search](/x-api/posts/search/introduction) |",
+    "| **Streaming** | [Filtered stream](/x-api/posts/filtered-stream/introduction), [Filtered stream webhooks](/x-api/webhooks/stream/introduction) |",
+    "| **Timelines** | [User posts](/x-api/posts/timelines/introduction), [User mentions](/x-api/posts/timelines/introduction) |",
+    "| **Engagement** | [Liked posts](/x-api/posts/likes/introduction), [Bookmarks](/x-api/posts/bookmarks/introduction) |",
+    "| **Lists** | [List posts](/x-api/lists/list-tweets/introduction) |",
+    "## Deduplication",
+    "**Daily deduplication**: If the same post is returned from multiple queries within a day, it only counts once for billing.",
+    "* Retrieving the same post multiple times in one day = 1 charge",
+    "* Retrieving a post again the next day = 1 additional charge",
+    "* Different posts in the same request = each counts separately",
+    "## Monitoring usage",
+    "Track your usage in the [Developer Console](https://console.x.com):",
+    "| **Total usage** | Posts retrieved in the billing period |",
+    "| **By app** | Usage per developer app |",
+    "| **Cost tracking** | Real-time cost calculations |",
+    "## Managing costs",
+    "Cache responses to avoid re-fetching the same posts.",
+    "Use precise filters to retrieve only needed posts.",
+    "API requests will fail until you purchase more credits. Set up balance alerts to avoid interruption.",
+    "No. Pay only for what you use. You can have months with zero usage and zero cost.",
+    "Each unique post delivered through filtered stream counts toward usage, subject to daily deduplication.",
+    "<Accordion title=\"Do failed requests count?\">",
+    "Understand request limits (separate from billing)."
+  ],
+  "usage_endpoint_fields": [
+    "- cap_reset_day",
+    "- daily_client_app_usage",
+    "- daily_project_usage",
+    "- project_cap",
+    "- project_usage",
+    "- cap_reset_day",
+    "- daily_client_app_usage",
+    "- daily_project_usage",
+    "- project_cap",
+    "- project_usage",
+    "cap_reset_day:",
+    "daily_client_app_usage:",
+    "daily_project_usage:",
+    "project_cap:",
+    "project_usage:"
+  ],
+  "tracer_relevant_rate_limits": [
+    "| GET | `/2/tweets/:id` | 450/15min | 900/15min |",
+    "| GET | `/2/tweets/search/recent` | 450/15min | 300/15min | 10 default, 100 max results; 512 query length |",
+    "| GET | `/2/tweets/counts/recent` | 300/15min | \u2014 | 512 query length |",
+    "| DELETE | `/2/tweets/:id` | \u2014 | 50/15min |",
+    "| GET | `/2/tweets/:id/liking_users` | 75/15min | 75/15min |",
+    "| GET | `/2/tweets/:id/retweeted_by` | 75/15min | 75/15min | \u2014 |",
+    "| GET | `/2/tweets/:id/quote_tweets` | 75/15min | 75/15min | \u2014 |",
+    "| GET | `/2/usage/tweets` | 50/15min | \u2014 |",
+    "| GET | `/2/tweets/:id/retweets` | 75/15min | 75/15min |"
+  ],
+  "llm_guidance": [
+    "Prefer counts endpoints for cheap event mapping before fetching full posts.",
+    "Use recent search only for sampled windows or targets with nonzero counts.",
+    "Use /2/usage/tweets to check project usage and cap; account-level dollar balance may not be exposed by API.",
+    "Treat official pricing as volatile; refresh this artifact before optimizing spend-sensitive strategies."
+  ]
+}
