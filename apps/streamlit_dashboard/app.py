@@ -87,7 +87,67 @@ def load_history() -> pd.DataFrame:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    return df.dropna(subset=["saved_at"]).copy()
+    df = df.dropna(subset=["saved_at"]).copy()
+    df["evaluation_status"] = "evaluated"
+    return df
+
+
+@st.cache_data(ttl=60)
+def load_open_queries() -> pd.DataFrame:
+    rows = []
+    if not SNAPSHOTS_DIR.exists():
+        return pd.DataFrame()
+
+    for path in SNAPSHOTS_DIR.glob("batch_*.json"):
+        try:
+            payload = json.loads(path.read_text())
+        except Exception:
+            continue
+
+        evaluation = payload.get("evaluation") or {}
+        if evaluation.get("status") == "evaluated":
+            continue
+
+        saved_at = pd.to_datetime(payload.get("saved_at"), utc=True, errors="coerce")
+        if pd.isna(saved_at):
+            continue
+
+        counts_df = pd.DataFrame(payload.get("counts_snapshot", []))
+        if not counts_df.empty:
+            counts_df["bucket_end"] = pd.to_datetime(counts_df["bucket_end"], utc=True, errors="coerce")
+            counts_df["tweet_count"] = pd.to_numeric(counts_df["tweet_count"], errors="coerce").fillna(0)
+
+        for query_index, query_payload in enumerate(payload.get("queries", [])):
+            query = query_payload.get("query")
+            if counts_df.empty or not query:
+                t0_3h = 0
+            else:
+                t0_df = (
+                    counts_df[counts_df["query"] == query]
+                    .sort_values("bucket_end")
+                    .tail(3)
+                )
+                t0_3h = int(t0_df["tweet_count"].sum()) if not t0_df.empty else 0
+
+            rows.append(
+                {
+                    "batch_id": payload.get("batch_id", path.stem),
+                    "saved_at": saved_at,
+                    "query_index": query_index,
+                    "query": query,
+                    "domain": query_payload.get("domain"),
+                    "mode": query_payload.get("mode"),
+                    "reason": query_payload.get("reason"),
+                    "t0_3h": t0_3h,
+                    "future_3h": pd.NA,
+                    "growth_ratio": pd.NA,
+                    "realized_score": pd.NA,
+                    "future_bucket_count": pd.NA,
+                    "evaluation_status": "open",
+                }
+            )
+
+    return pd.DataFrame(rows)
 
 
 def render_header() -> None:
@@ -137,11 +197,12 @@ def add_query_time_offsets(df: pd.DataFrame, spread_minutes: int) -> pd.DataFram
 
 def render_query_plot() -> None:
     history = load_history()
+    open_queries = load_open_queries()
     st.divider()
     st.subheader("Query Outcome Map")
 
-    if history.empty:
-        st.info("No query history available yet.")
+    if history.empty and open_queries.empty:
+        st.info("No query rows available yet.")
         return
 
     try:
@@ -162,12 +223,18 @@ def render_query_plot() -> None:
     color_by = controls[1].selectbox("Color", ["mode", "domain"])
     spread_minutes = controls[2].slider("Within-batch spread", 1, 60, 18)
 
-    plot_df = history.copy()
+    plot_df = pd.concat([history, open_queries], ignore_index=True)
     plot_df["absolute_change"] = plot_df["future_3h"].fillna(0) - plot_df["t0_3h"].fillna(0)
     plot_df = add_query_time_offsets(plot_df, spread_minutes=spread_minutes)
 
     y_col = y_options[y_label]
-    plot_df = plot_df.dropna(subset=["plot_time", y_col])
+    plot_df["y_value"] = plot_df[y_col]
+    open_mask = plot_df["evaluation_status"].eq("open")
+    if y_col == "t0_3h":
+        plot_df.loc[open_mask, "y_value"] = plot_df.loc[open_mask, "t0_3h"]
+    else:
+        plot_df.loc[open_mask, "y_value"] = 0
+    plot_df = plot_df.dropna(subset=["plot_time", "y_value"])
 
     if plot_df.empty:
         st.info("No rows are available for the selected y-axis.")
@@ -177,19 +244,20 @@ def render_query_plot() -> None:
     x_max = plot_df["saved_at"].max()
     x_pad = max((x_max - x_min) * 0.04, pd.Timedelta(minutes=20))
 
-    plot_df["volume_size"] = (
-        (plot_df["t0_3h"].fillna(0) + plot_df["future_3h"].fillna(0)).clip(lower=0) + 1
-    )
+    plot_df["volume_size"] = plot_df["t0_3h"].fillna(0).clip(lower=0) + 1
     plot_df["marker_size"] = (plot_df["volume_size"].pow(0.35) * 4).clip(lower=5, upper=22)
 
     fig = go.Figure()
     color_col = color_by if color_by in plot_df.columns else "mode"
-    for name, group in plot_df.groupby(color_col, dropna=False, sort=True):
+    evaluated_df = plot_df[~plot_df["evaluation_status"].eq("open")]
+    open_df = plot_df[plot_df["evaluation_status"].eq("open")]
+
+    for name, group in evaluated_df.groupby(color_col, dropna=False, sort=True):
         label = str(name) if pd.notna(name) else "unknown"
         fig.add_trace(
             go.Scattergl(
                 x=group["plot_time"],
-                y=group[y_col],
+                y=group["y_value"],
                 mode="markers",
                 name=label,
                 marker={
@@ -223,6 +291,44 @@ def render_query_plot() -> None:
             )
         )
 
+    if not open_df.empty:
+        fig.add_trace(
+            go.Scattergl(
+                x=open_df["plot_time"],
+                y=open_df["y_value"],
+                mode="markers",
+                name="open",
+                marker={
+                    "size": open_df["marker_size"],
+                    "color": "#16a34a",
+                    "opacity": 0.82,
+                    "line": {"width": 0.7, "color": "rgba(20,20,20,0.45)"},
+                },
+                customdata=open_df[
+                    [
+                        "query",
+                        "domain",
+                        "mode",
+                        "batch_id",
+                        "query_index",
+                        "saved_at",
+                        "t0_3h",
+                        "future_3h",
+                        "growth_ratio",
+                        "realized_score",
+                    ]
+                ].astype(str),
+                hovertemplate=(
+                    "<b>OPEN</b> · %{customdata[1]} / %{customdata[2]}<br>"
+                    "Batch: %{customdata[3]} · Query %{customdata[4]}<br>"
+                    "Saved: %{customdata[5]}<br>"
+                    "t0_3h: %{customdata[6]} · pending evaluation<br>"
+                    "<br>%{customdata[0]}"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
     fig.update_layout(
         height=620,
         margin={"l": 24, "r": 24, "t": 20, "b": 24},
@@ -230,7 +336,18 @@ def render_query_plot() -> None:
         xaxis_title="Batch saved_at with query_index display offset",
         yaxis_title=y_label,
     )
-    fig.update_xaxes(range=[x_min - x_pad, x_max + x_pad])
+    fig.update_xaxes(
+        range=[x_min - x_pad, x_max + x_pad],
+        rangeslider={"visible": True, "thickness": 0.08},
+        rangeselector={
+            "buttons": [
+                {"count": 6, "label": "6h", "step": "hour", "stepmode": "backward"},
+                {"count": 12, "label": "12h", "step": "hour", "stepmode": "backward"},
+                {"count": 1, "label": "1d", "step": "day", "stepmode": "backward"},
+                {"step": "all", "label": "all"},
+            ]
+        },
+    )
     fig.add_hline(y=0, line_width=1, line_dash="dot", line_color="rgba(0,0,0,0.45)")
 
     st.plotly_chart(fig, use_container_width=True)
