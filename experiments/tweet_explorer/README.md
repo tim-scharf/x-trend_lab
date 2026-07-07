@@ -7,7 +7,7 @@ Explore one X Post from a known tweet ID with strict cost accounting.
 The current first step is intentionally small:
 
 ```text
-tweet_id -> initial probe -> runs/<tweet_id>/
+tweet_id -> initial probe -> runs/<tweet_id>/<runtime>/
 ```
 
 ## Initial Probe
@@ -15,7 +15,7 @@ tweet_id -> initial probe -> runs/<tweet_id>/
 Run:
 
 ```bash
-python experiments/tweet_explorer/scripts/run.py 1234567890123456789
+python experiments/tweet_explorer/scripts/playbook.py 1234567890123456789
 ```
 
 This calls:
@@ -39,24 +39,27 @@ Output:
 ```text
 runs/
   <tweet_id>/
-    manifest.json
-    initial_probe.json
-    request.json
-    tweet.json
-    author.json
-    ledger.json
+    <runtime>/
+      history.json
 ```
 
-`initial_probe.json` contains the full raw X payload plus extracted tweet and author fields. The smaller `tweet.json` and `author.json` files are convenience views.
+`history.json` is the append-only run record. It starts with the initial `probe` step and tracks X budget plus the OpenAI call cap.
+
+Future loop shape:
+
+```text
+probe -> plan -> execute -> plan -> execute -> plan -> execute
+```
 
 ## Scripts
 
 ```text
 scripts/
-  run.py            # initial probe entrypoint
+  playbook.py       # orchestration entrypoint
   probe.py          # reusable tweet hydrate function
+  helper.py         # shared JSON and summary helpers
 ```
 
 ## Next
 
-Planner and reassessment steps should build on the saved `runs/<tweet_id>/initial_probe.json`.
+Planner and reassessment steps should build on the saved `runs/<tweet_id>/<runtime>/history.json`.

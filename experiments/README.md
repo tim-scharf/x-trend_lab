@@ -20,7 +20,7 @@ experiments/
   YYYY-MM-DD_short-name/
     README.md
     scripts/
-      run.py
+      playbook.py
       probe.py
 ```
 
