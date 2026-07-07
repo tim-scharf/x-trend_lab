@@ -219,6 +219,13 @@ def main() -> None:
             downloaded[doc["id"]] = {"ok": True, "text": text}
         manifest["sources"].append(record)
 
+    ok_count = sum(1 for source in manifest["sources"] if source["ok"])
+    if ok_count == 0:
+        print("Fetched 0 sources; leaving existing X API artifacts unchanged.")
+        for source in manifest["sources"]:
+            print(f"- {source['id']}: failed: {source.get('error', 'unknown error')}")
+        sys.exit(1)
+
     cost_profile = build_cost_profile(downloaded)
     write_text(ARTIFACT_DIR / "manifest.json", json.dumps(manifest, indent=2))
     write_text(ARTIFACT_DIR / "x_api_cost_profile.json", json.dumps(cost_profile, indent=2))
@@ -242,7 +249,6 @@ def main() -> None:
     ]
     write_text(ARTIFACT_DIR / "README.md", "\n".join(readme) + "\n")
 
-    ok_count = sum(1 for source in manifest["sources"] if source["ok"])
     print(f"Wrote {ARTIFACT_DIR}")
     print(f"Fetched {ok_count}/{len(DOCS)} sources")
     for source in manifest["sources"]:

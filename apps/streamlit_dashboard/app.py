@@ -4,6 +4,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
@@ -16,6 +17,7 @@ GENERATED_DIR = DATA_DIR / "generated"
 SNAPSHOTS_DIR = DATA_DIR / "snapshots"
 EVIDENCE_DIR = DATA_DIR / "evidence"
 HISTORY_CSV = RUNTIME_DIR / "query_level_history.csv"
+LOCAL_TZ = ZoneInfo("America/Chicago")
 
 sys.path.append(str(ROOT / "scripts"))
 sys.path.append(str(ROOT))
@@ -178,11 +180,18 @@ def render_header() -> None:
     now_local = datetime.now().astimezone()
 
     st.title("X Trend Lab")
-    st.caption("Wireframe rebuild")
+    header_cols = st.columns([3, 1])
+    header_cols[0].caption("Wireframe rebuild")
+    if header_cols[1].button("Refresh Data", use_container_width=True):
+        st.cache_data.clear()
+        st.session_state["last_data_refresh"] = now_local.strftime("%Y-%m-%d %H:%M:%S %Z")
+        st.toast("Data refreshed")
 
     col_a, col_b = st.columns(2)
     col_a.metric("Local Time", now_local.strftime("%Y-%m-%d %H:%M:%S %Z"))
     col_b.metric("UTC Time", now_utc.strftime("%Y-%m-%d %H:%M:%S UTC"))
+    if st.session_state.get("last_data_refresh"):
+        st.caption(f"Last manual refresh: {st.session_state['last_data_refresh']}")
 
 
 def render_basics() -> None:
@@ -275,6 +284,8 @@ def render_query_plot() -> None:
     plot_df = pd.concat([history, open_queries], ignore_index=True)
     plot_df["absolute_change"] = plot_df["future_3h"].fillna(0) - plot_df["t0_3h"].fillna(0)
     plot_df = add_query_time_offsets(plot_df, spread_minutes=spread_minutes)
+    plot_df["plot_time"] = plot_df["plot_time"].dt.tz_convert(LOCAL_TZ)
+    plot_df["saved_at_display"] = plot_df["saved_at"].dt.tz_convert(LOCAL_TZ).dt.strftime("%Y-%m-%d %H:%M:%S %Z")
 
     y_col = y_options[y_label]
     plot_df["y_value"] = plot_df[y_col]
@@ -283,14 +294,19 @@ def render_query_plot() -> None:
         plot_df.loc[open_mask, "y_value"] = plot_df.loc[open_mask, "t0_3h"]
     else:
         plot_df.loc[open_mask, "y_value"] = 0
+
+    log_volume_axis = y_col in {"t0_3h", "future_3h"}
+    if log_volume_axis:
+        plot_df["y_value"] = plot_df["y_value"].fillna(0).clip(lower=0) + 1
+
     plot_df = plot_df.dropna(subset=["plot_time", "y_value"])
 
     if plot_df.empty:
         st.info("No rows are available for the selected y-axis.")
         return
 
-    x_min = plot_df["saved_at"].min()
-    x_max = plot_df["saved_at"].max()
+    x_min = plot_df["plot_time"].min()
+    x_max = plot_df["plot_time"].max()
     x_pad = max((x_max - x_min) * 0.04, pd.Timedelta(minutes=20))
 
     plot_df["volume_size"] = plot_df["t0_3h"].fillna(0).clip(lower=0) + 1
@@ -321,7 +337,7 @@ def render_query_plot() -> None:
                         "mode",
                         "batch_id",
                         "query_index",
-                        "saved_at",
+                        "saved_at_display",
                         "t0_3h",
                         "future_3h",
                         "growth_ratio",
@@ -360,7 +376,7 @@ def render_query_plot() -> None:
                         "mode",
                         "batch_id",
                         "query_index",
-                        "saved_at",
+                        "saved_at_display",
                         "t0_3h",
                         "future_3h",
                         "growth_ratio",
@@ -382,9 +398,12 @@ def render_query_plot() -> None:
         height=620,
         margin={"l": 24, "r": 24, "t": 20, "b": 24},
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
-        xaxis_title="Batch saved_at with query_index display offset",
-        yaxis_title=y_label,
+        xaxis_title="Batch saved_at America/Chicago with query_index display offset",
+        yaxis_title=f"{y_label} (log scale, +1)" if log_volume_axis else y_label,
     )
+    if log_volume_axis:
+        fig.update_yaxes(type="log", tickformat=",")
+
     fig.update_xaxes(
         range=[x_min - x_pad, x_max + x_pad],
         rangeslider={"visible": True, "thickness": 0.08},

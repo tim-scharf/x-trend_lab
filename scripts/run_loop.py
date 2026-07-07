@@ -12,6 +12,8 @@ from config import BOOTSTRAP_MODE, EVAL_LAG_HOURS, GENERATED_DIR, RUN_INTERVAL_M
 
 REASONING_MEMORY_MAX_AGE_HOURS = 12
 REASONING_MEMORY_LATEST = ROOT / "data" / "memory" / "reasoning_memory_latest.json"
+X_API_ARTIFACT_MAX_AGE_DAYS = 7
+X_API_ARTIFACT_MANIFEST = ROOT / "artifacts" / "x_api" / "manifest.json"
 
 
 def parse_iso(ts: str) -> datetime:
@@ -69,6 +71,42 @@ def refresh_reasoning_memory_if_stale() -> None:
     run([sys.executable, "scripts/update_reasoning_memory.py"])
 
 
+def latest_x_api_artifact_generated_at() -> datetime | None:
+    if not X_API_ARTIFACT_MANIFEST.exists():
+        return None
+
+    try:
+        payload = json.loads(X_API_ARTIFACT_MANIFEST.read_text())
+        generated_at = payload.get("generated_at")
+        if generated_at:
+            return parse_iso(generated_at)
+    except Exception:
+        pass
+
+    try:
+        return datetime.fromtimestamp(X_API_ARTIFACT_MANIFEST.stat().st_mtime, tz=timezone.utc)
+    except Exception:
+        return None
+
+
+def refresh_x_api_artifacts_if_stale() -> None:
+    generated_at = latest_x_api_artifact_generated_at()
+    now = datetime.now(timezone.utc)
+    max_age = timedelta(days=X_API_ARTIFACT_MAX_AGE_DAYS)
+
+    if generated_at is not None and now - generated_at < max_age:
+        print(f"\nX API artifacts are fresh: {generated_at.isoformat()}")
+        return
+
+    if generated_at is None:
+        print("\nNo X API artifact manifest found. Refreshing X API docs.")
+    else:
+        age_days = (now - generated_at).total_seconds() / 86400
+        print(f"\nX API artifacts are stale ({age_days:.1f}d old). Refreshing X API docs.")
+
+    run([sys.executable, "scripts/refresh_x_api_artifacts.py"])
+
+
 def mature_snapshot_count() -> int:
     snapshot_dir = ROOT / "data" / "snapshots"
     files = sorted(snapshot_dir.glob("batch_*.json"))
@@ -116,6 +154,7 @@ def main() -> None:
 
     run([sys.executable, "scripts/evaluate_predictions.py"])
     run([sys.executable, "scripts/build_query_history.py"])
+    refresh_x_api_artifacts_if_stale()
     refresh_reasoning_memory_if_stale()
 
     ready_count = mature_snapshot_count()
