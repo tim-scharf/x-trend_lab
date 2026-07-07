@@ -19,3 +19,6 @@ data/runtime/*.csv
 data/snapshots/*.json
 logs/*.log
 logs/reasoning/*.md
+
+# disposable experiment runs
+experiments/**/runs/*
