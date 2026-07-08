@@ -9,41 +9,16 @@ from typing import Any
 
 import requests
 from dotenv import load_dotenv
-
-
-ROOT = Path(__file__).resolve().parents[3]
-X_TWEET_LOOKUP_URL = "https://api.x.com/2/tweets/{tweet_id}"
-X_POST_READ_COST_USD = 0.005
-X_USER_READ_COST_USD = 0.010
-
-TWEET_FIELDS = [
-    "id",
-    "text",
-    "author_id",
-    "created_at",
-    "conversation_id",
-    "public_metrics",
-    "referenced_tweets",
-    "entities",
-    "context_annotations",
-    "lang",
-    "possibly_sensitive",
-    "attachments",
-]
-
-USER_FIELDS = [
-    "id",
-    "name",
-    "username",
-    "created_at",
-    "description",
-    "verified",
-    "verified_type",
-    "protected",
-    "public_metrics",
-    "location",
-    "profile_image_url",
-]
+from config import (
+    MEDIA_FIELDS,
+    ROOT,
+    TWEET_FIELDS,
+    USER_FIELDS,
+    X_MEDIA_READ_FALLBACK_COST_USD,
+    X_POST_READ_COST_USD,
+    X_TWEET_LOOKUP_URL,
+    X_USER_READ_COST_USD,
+)
 
 
 def validate_tweet_id(tweet_id: str) -> None:
@@ -73,11 +48,16 @@ def initial_probe(tweet_id: str, bearer_token: str | None = None) -> dict[str, A
         "payload": payload,
         "tweet": payload.get("data"),
         "author": first_author(payload),
+        "media": included_media(payload),
         "estimated_cost_usd": estimate_probe_cost_usd(payload),
         "cost_basis": {
             "post_read_usd": X_POST_READ_COST_USD,
             "user_read_usd": X_USER_READ_COST_USD,
-            "note": "Initial probe fetches one Post plus author expansion when available.",
+            "media_read_fallback_usd": X_MEDIA_READ_FALLBACK_COST_USD,
+            "note": (
+                "Initial probe fetches one Post plus author and media expansions "
+                "when available. Media pricing is estimated with the local fallback."
+            ),
         },
     }
 
@@ -88,8 +68,9 @@ def probe_request(tweet_id: str) -> dict[str, Any]:
         "url": X_TWEET_LOOKUP_URL.format(tweet_id=tweet_id),
         "params": {
             "tweet.fields": ",".join(TWEET_FIELDS),
-            "expansions": "author_id",
+            "expansions": "author_id,attachments.media_keys",
             "user.fields": ",".join(USER_FIELDS),
+            "media.fields": ",".join(MEDIA_FIELDS),
         },
     }
 
@@ -99,6 +80,11 @@ def first_author(payload: dict[str, Any]) -> dict[str, Any] | None:
     if users and isinstance(users[0], dict):
         return users[0]
     return None
+
+
+def included_media(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    media = (payload.get("includes") or {}).get("media") or []
+    return [item for item in media if isinstance(item, dict)]
 
 
 def estimate_probe_cost_usd(probe_payload: dict[str, Any]) -> float:
@@ -112,6 +98,9 @@ def estimate_probe_cost_usd(probe_payload: dict[str, Any]) -> float:
     tweets = includes.get("tweets") or []
     if isinstance(tweets, list):
         cost += len(tweets) * X_POST_READ_COST_USD
+    media = includes.get("media") or []
+    if isinstance(media, list):
+        cost += len(media) * X_MEDIA_READ_FALLBACK_COST_USD
     return round(cost, 6)
 
 
